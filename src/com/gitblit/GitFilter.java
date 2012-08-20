@@ -101,16 +101,6 @@ public class GitFilter extends AccessRestrictionFilter {
 	 */
 	@Override
 	protected boolean isActionAllowed(RepositoryModel repository, String action) {
-        if (action==null) 
-        {
-             logger.warn("action is null, returning false", new NullPointerException("action is null"));
-             return false;
-        }
-        if (repository==null) 
-        {
-            logger.warn("repository is null, returning false", new NullPointerException("repository is null"));
-            return false;
-        }
 		if (action.equals(gitReceivePack)) {
 			// Push request
 			if (!repository.isBare) {
