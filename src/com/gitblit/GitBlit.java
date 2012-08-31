@@ -2221,32 +2221,40 @@ public class GitBlit implements ServletContextListener {
 		logCVE_2007_0450();
 	}
 
+	/**
+	 * This method will test for know issues in certain containers where 
+	 * %2F is blocked from use in URLs. It will emit a warning to the logger 
+	 * if the configuration of Tomcat causes the URL processing to fail on %2F.
+	 */
     private void logCVE_2007_0450()
     {
-        if (settings.getBoolean(Keys.web.mountParameters, true))
+        if (settings.getBoolean(Keys.web.mountParameters, true) && ((GitBlit.getChar(Keys.web.forwardSlashCharacter, '/'))=='/' || (GitBlit.getChar(Keys.web.forwardSlashCharacter, '/'))=='\\'))
         {
-            char c = GitBlit.getChar(Keys.web.forwardSlashCharacter, '/');
-            if (c=='/' || c=='\\')
+            try
             {
-                try
+                if (serverStatus.isGO);
+                else if (logCVE_2007_0450Tomcat());
+                //else if (logCVE_2007_0450xxx());
+                else
                 {
-                    if (serverStatus.isGO);
-                    else if (logCVE_2007_0450Tomcat());
-                    //else if (logCVE_2007_0450xxx());
-                    else
-                    {
-                        logger.info("Unknown container, cannot check for CVE-2007-0450 aplicability");
-                    }
-                }
-                catch (Throwable t)
-                {
-                    logger.warn("Failure in checking for CVE-2007-0450 aplicability", t);
+                    logger.info("Unknown container, cannot check for CVE-2007-0450 aplicability");
                 }
             }
+            catch (Throwable t)
+            {
+                logger.warn("Failure in checking for CVE-2007-0450 aplicability", t);
+            }
         }
-        
     }
 	
+    /**
+     * This method will test for know issues in certain versions of Tomcat, JBOSS, 
+     * glassfish, and other embedded uses of Tomcat where %2F is blocked from use 
+     * in certain URL s. It will emit a warning to the logger if the configuration 
+     * of Tomcat causes the URL processing to fail on %2F.
+     * 
+     * @return true if it recognizes Tomcat, false if it does not recognize Tomcat
+     */
     private boolean logCVE_2007_0450Tomcat()
     {
         try
@@ -2272,58 +2280,23 @@ public class GitBlit implements ServletContextListener {
             {
                 mUDecoder_convert.invoke(ud, mb,false);
             }
-            catch (InvocationTargetException e2)
+            catch (InvocationTargetException e)
             {
-                if (e2!=null)
+                if (e.getTargetException()!=null && e.getTargetException() instanceof CharConversionException)
                 {
-                    Throwable x = e2.getTargetException();
-                    if (x!=null && x instanceof CharConversionException)
-                    {
-                        logger.warn("You are using a Tomcat based system and the current settings regarding CVE-2007-0450 will prevent certain fetures from working. Please see http://gitblit.com/faq.html and http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2007-0450");
-                        return true;
-                    }
+                    logger.warn("You are using a Tomcat based system and the current settings regarding CVE-2007-0450 will prevent certain fetures from working. Please see http://gitblit.com/faq.html and http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2007-0450");
+                    return true;
                 }
-                throw new RuntimeException(e2);                
+                throw e;                
             }
-
-            // a tomcat based system
-            return true;
         }
-        catch (ClassNotFoundException e)
+        catch (Throwable t)
         {
-            //not a tomcat based system
-            return false;
+          //The apache url decoder internals are different, this is not a Tomcat matching the failure pattern for CVE-2007-0450
+          if (t instanceof ClassNotFoundException || t instanceof NoSuchMethodException || t instanceof IllegalArgumentException) return false;
+          logger.debug("This is a tomcat, but the test operation failed somehow",t);
         }
-        catch (NoSuchMethodException e)
-        {
-            //this is not the same tomcat helper method as expected. Version issues?
-            return false;
-        }
-        catch (IllegalArgumentException e)
-        {
-            //this is not the same tomcat helper method as expected. Version issues?
-            return false;
-        }
-        catch (InstantiationException e)
-        {
-            logger.debug("",e);
-            return true;
-        }
-        catch (IllegalAccessException e)
-        {
-            logger.debug("",e);
-            return true;
-        }
-        catch (SecurityException e)
-        {
-            logger.debug("",e);
-            return true;
-        }
-        catch (InvocationTargetException e)
-        {
-            logger.debug("",e);
-            return true;
-        }
+        return true;
 	}
 	
 	private void logTimezone(String type, TimeZone zone) {
