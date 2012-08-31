@@ -77,7 +77,7 @@ public class ContainerUtils
         /**
          * This method will test for know issues in certain versions of Tomcat,
          * JBOSS, glassfish, and other embedded uses of Tomcat where %2F is
-         * blocked from use in certain URL s. It will emit a warning to the
+         * blocked from use in certain URLs. It will emit a warning to the
          * logger if the configuration of Tomcat causes the URL processing to
          * fail on %2F.
          * 
