@@ -16,12 +16,15 @@
 package com.gitblit;
 
 import java.io.BufferedReader;
+import java.io.CharConversionException;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -2214,6 +2217,113 @@ public class GitBlit implements ServletContextListener {
 		} catch (IllegalArgumentException e) {
 			logger.error("Failed to configure JGit parameters!", e);
 		}
+		
+		logCVE_2007_0450();
+	}
+
+    private void logCVE_2007_0450()
+    {
+        if (settings.getBoolean(Keys.web.mountParameters, true))
+        {
+            char c = GitBlit.getChar(Keys.web.forwardSlashCharacter, '/');
+            if (c=='/' || c=='\\')
+            {
+                try
+                {
+                    if (serverStatus.isGO);
+                    else if (logCVE_2007_0450Tomcat());
+                    //else if (logCVE_2007_0450xxx());
+                    else
+                    {
+                        logger.info("Unknown container, cannot check for CVE-2007-0450 aplicability");
+                    }
+                }
+                catch (Throwable t)
+                {
+                    logger.warn("Failure in checking for CVE-2007-0450 aplicability", t);
+                }
+            }
+        }
+        
+    }
+	
+    private boolean logCVE_2007_0450Tomcat()
+    {
+        try
+        {
+            byte[] test = "http://server.domain:8080/context/servlet/param%2fparam".getBytes();
+
+            //ByteChunk mb=new ByteChunk();
+            Class<?> cByteChunk = Class.forName("org.apache.tomcat.util.buf.ByteChunk");
+            Object mb = cByteChunk.newInstance();
+            
+            //mb.setBytes(test, 0, test.length);
+            Method mByteChunck_setBytes = cByteChunk.getMethod("setBytes", byte[].class, int.class, int.class);
+            mByteChunck_setBytes.invoke(mb, test, (int)0, test.length);
+            
+            //UDecoder ud=new UDecoder();
+            Class<?> cUDecoder = Class.forName("org.apache.tomcat.util.buf.UDecoder");
+            Object ud = cUDecoder.newInstance();
+            
+            //ud.convert(mb,false);
+            Method mUDecoder_convert = cUDecoder.getMethod("convert", cByteChunk, boolean.class);
+
+            try
+            {
+                mUDecoder_convert.invoke(ud, mb,false);
+            }
+            catch (InvocationTargetException e2)
+            {
+                if (e2!=null)
+                {
+                    Throwable x = e2.getTargetException();
+                    if (x!=null && x instanceof CharConversionException)
+                    {
+                        logger.warn("You are using a Tomcat based system and the current settings regarding CVE-2007-0450 will prevent certain fetures from working. Please see http://gitblit.com/faq.html and http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2007-0450");
+                        return true;
+                    }
+                }
+                throw new RuntimeException(e2);                
+            }
+
+            // a tomcat based system
+            return true;
+        }
+        catch (ClassNotFoundException e)
+        {
+            //not a tomcat based system
+            return false;
+        }
+        catch (NoSuchMethodException e)
+        {
+            //this is not the same tomcat helper method as expected. Version issues?
+            return false;
+        }
+        catch (IllegalArgumentException e)
+        {
+            //this is not the same tomcat helper method as expected. Version issues?
+            return false;
+        }
+        catch (InstantiationException e)
+        {
+            logger.debug("",e);
+            return true;
+        }
+        catch (IllegalAccessException e)
+        {
+            logger.debug("",e);
+            return true;
+        }
+        catch (SecurityException e)
+        {
+            logger.debug("",e);
+            return true;
+        }
+        catch (InvocationTargetException e)
+        {
+            logger.debug("",e);
+            return true;
+        }
 	}
 	
 	private void logTimezone(String type, TimeZone zone) {
